@@ -13,6 +13,18 @@ if errorlevel 1 (
   exit /b 1
 )
 
+if not exist "%~dp0frontend\node_modules\.bin\vite.cmd" (
+  echo [INFO] Frontend dependencies are missing. Running npm install...
+  pushd "%~dp0frontend"
+  call npm install
+  if errorlevel 1 (
+    echo [ERROR] npm install failed. Frontend could not be prepared.
+    popd
+    exit /b 1
+  )
+  popd
+)
+
 echo App started successfully
 start "Frontend" cmd /k "cd /d %~dp0frontend && npm run dev"
 start "Backend" cmd /k "cd /d %~dp0 && uvicorn main:app --reload"

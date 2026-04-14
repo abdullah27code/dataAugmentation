@@ -15,6 +15,8 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent
 FRONTEND_DIR = ROOT_DIR / "frontend"
+VITE_BIN_WIN = FRONTEND_DIR / "node_modules" / ".bin" / "vite.cmd"
+VITE_BIN_UNIX = FRONTEND_DIR / "node_modules" / ".bin" / "vite"
 
 
 def _command_exists(command: str) -> bool:
@@ -45,6 +47,25 @@ def _start_process(command: list[str], cwd: Path) -> subprocess.Popen:
     )
 
 
+def _ensure_frontend_dependencies() -> bool:
+    vite_exists = VITE_BIN_WIN.exists() or VITE_BIN_UNIX.exists()
+    if vite_exists:
+        return True
+
+    print("[INFO] Frontend dependencies are missing. Running npm install...")
+    install_result = subprocess.run(["npm", "install"], cwd=str(FRONTEND_DIR), shell=False)
+    if install_result.returncode != 0:
+        print("[ERROR] npm install failed. Frontend could not be prepared.")
+        return False
+
+    vite_exists = VITE_BIN_WIN.exists() or VITE_BIN_UNIX.exists()
+    if not vite_exists:
+        print("[ERROR] Vite binary was not found after npm install. Please check frontend/package.json.")
+        return False
+
+    return True
+
+
 def _terminate_process(process: subprocess.Popen) -> None:
     if process.poll() is not None:
         return
@@ -62,6 +83,9 @@ def main() -> int:
 
     if not FRONTEND_DIR.exists():
         print(f"[ERROR] frontend directory not found: {FRONTEND_DIR}")
+        return 1
+
+    if not _ensure_frontend_dependencies():
         return 1
 
     frontend_process: subprocess.Popen | None = None

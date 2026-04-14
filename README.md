@@ -74,6 +74,14 @@ npm install
 npm run dev
 ```
 
+If you see `'vite' is not recognized`, dependencies are not installed yet. Run:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
 Optional: set backend URL
 
 ```bash
@@ -88,6 +96,20 @@ VITE_API_URL=http://localhost:8000
 4. Click **Generate Preview** to see one sample augmentation per uploaded image.
 5. Click **Generate ZIP** to prepare the downloadable dataset.
 6. Click **Download ZIP** when ready.
+
+## One-command start (frontend + backend)
+
+```bash
+python start.py
+```
+
+Windows users can also run:
+
+```bat
+start.bat
+```
+
+Both launcher scripts auto-run `npm install` when frontend dependencies are missing.
 
 ## Output Layout (inside ZIP)
 
