@@ -1,27 +1,25 @@
 import { useMemo, useState } from 'react'
-import ImageUploader from './components/ImageUploader'
+import UploadBox from './components/UploadBox'
 import PreviewGrid from './components/PreviewGrid'
-import SettingsPanel from './components/SettingsPanel'
+import Controls from './components/Controls'
 import { requestAugmentation } from './lib/api'
 
-function downloadBlob(blob, filename) {
-  const href = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-  anchor.href = href
-  anchor.download = filename
-  document.body.appendChild(anchor)
-  anchor.click()
-  anchor.remove()
-  URL.revokeObjectURL(href)
+function downloadZip(blob, filename = 'augmented_dataset.zip') {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
 }
 
 export default function App() {
   const [files, setFiles] = useState([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [progress, setProgress] = useState(0)
-  const [zipBlob, setZipBlob] = useState(null)
+  const [successMessage, setSuccessMessage] = useState('')
 
   const [config, setConfig] = useState({
     horizontal_flip: true,
@@ -41,85 +39,67 @@ export default function App() {
       return
     }
 
-    if (files.length > 10) {
-      setError('Maximum 10 images allowed.')
-      return
-    }
-
     setError('')
-    setSuccess(false)
+    setSuccessMessage('')
     setLoading(true)
-    setProgress(5)
 
     try {
-      const blob = await requestAugmentation(files, config, (event) => {
-        if (!event.total) return
-        const uploadProgress = Math.round((event.loaded / event.total) * 40)
-        setProgress(Math.max(uploadProgress, 10))
-      })
-
-      setProgress(100)
-      setZipBlob(blob)
-      setSuccess(true)
+      const zipBlob = await requestAugmentation(files, config)
+      downloadZip(zipBlob)
+      setSuccessMessage('Done! Your augmented ZIP has been downloaded.')
     } catch (requestError) {
+      setSuccessMessage('')
       const detail = requestError?.response?.data
       if (detail instanceof Blob) {
         const text = await detail.text()
-        setError(`Failed to process images: ${text}`)
+        setError(text || 'Failed to generate augmentation output.')
       } else {
-        setError('Failed to process images. Please try again.')
+        setError('Failed to generate augmentation output. Please try again.')
       }
     } finally {
       setLoading(false)
-      setTimeout(() => setProgress(0), 800)
     }
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-6xl p-4 md:p-8">
-      <header className="mb-6 rounded-xl bg-white p-5 shadow-sm">
-        <h1 className="text-2xl font-bold text-slate-900">AI Data Augmentation Tool</h1>
-        <p className="mt-1 text-slate-600">Upload images, choose transforms, and download a production-ready dataset ZIP.</p>
-      </header>
+    <main className="min-h-screen bg-slate-100 px-4 py-8 text-slate-900">
+      <div className="mx-auto max-w-5xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+        <header className="mb-8 border-b border-slate-100 pb-5">
+          <h1 className="text-2xl font-bold md:text-3xl">AI Data Augmentation Tool</h1>
+          <p className="mt-2 text-sm text-slate-600">Upload images, select augmentations, and download your generated dataset ZIP.</p>
+        </header>
 
-      <div className="grid gap-6 md:grid-cols-[1fr_350px]">
-        <section className="space-y-5">
-          <ImageUploader files={files} setFiles={setFiles} error={error} setError={setError} />
-          <PreviewGrid files={files} />
-        </section>
+        <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+          <section className="space-y-5">
+            <UploadBox files={files} setFiles={setFiles} error={error} setError={setError} disabled={loading} />
+            <PreviewGrid files={files} setFiles={setFiles} disabled={loading} />
+          </section>
 
-        <section className="space-y-4">
-          <SettingsPanel config={config} setConfig={setConfig} />
+          <section className="space-y-4">
+            <Controls config={config} setConfig={setConfig} disabled={loading} />
 
-          <button
-            onClick={handleGenerate}
-            disabled={!canGenerate}
-            className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
-          >
-            {loading ? 'Generating…' : 'Generate Augmented Dataset'}
-          </button>
+            <button
+              type="button"
+              onClick={handleGenerate}
+              disabled={!canGenerate}
+              className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+            >
+              {loading ? 'Generating...' : 'Generate Augmented Dataset'}
+            </button>
 
-          {loading && (
-            <div className="rounded-lg border bg-white p-3">
-              <p className="mb-2 text-sm text-slate-600">Processing images…</p>
-              <div className="h-2 rounded-full bg-slate-100">
-                <div className="h-2 rounded-full bg-blue-600 transition-all" style={{ width: `${progress}%` }} />
+            {loading && (
+              <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-blue-300 border-t-blue-700" />
+                  Processing images, please wait...
+                </span>
               </div>
-            </div>
-          )}
+            )}
 
-          {success && zipBlob && (
-            <div className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-              <p className="text-sm font-medium text-emerald-700">Dataset generated successfully.</p>
-              <button
-                onClick={() => downloadBlob(zipBlob, 'augmented_dataset.zip')}
-                className="w-full rounded-lg bg-emerald-600 px-4 py-2 font-semibold text-white hover:bg-emerald-700"
-              >
-                Download Result ZIP
-              </button>
-            </div>
-          )}
-        </section>
+            {successMessage && <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{successMessage}</p>}
+            {error && !loading && <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+          </section>
+        </div>
       </div>
     </main>
   )

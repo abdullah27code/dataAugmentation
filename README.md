@@ -3,7 +3,7 @@
 A production-ready web app to upload images, apply configurable augmentations, and download a generated dataset ZIP for ML workflows.
 
 ## Tech Stack
-- **Frontend:** React + Vite + TailwindCSS + React Dropzone
+- **Frontend:** React + Vite + TailwindCSS + Axios
 - **Backend:** FastAPI + OpenCV + Albumentations
 
 ## Project Structure
@@ -15,6 +15,12 @@ A production-ready web app to upload images, apply configurable augmentations, a
   requirements.txt
 /frontend
   /src
+    App.jsx
+    styles.css
+    /components
+      UploadBox.jsx
+      PreviewGrid.jsx
+      Controls.jsx
 ```
 
 ## Backend Setup
