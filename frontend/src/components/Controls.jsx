@@ -37,6 +37,9 @@ export default function Controls({ config, setConfig, disabled }) {
       />
       <Toggle label="Noise" value={config.gaussian_noise} onChange={(e) => update('gaussian_noise', e.target.checked)} disabled={disabled} />
       <Toggle label="Blur" value={config.blur} onChange={(e) => update('blur', e.target.checked)} disabled={disabled} />
+      <Toggle label="Motion Blur" value={config.motion_blur} onChange={(e) => update('motion_blur', e.target.checked)} disabled={disabled} />
+      <Toggle label="Sharpen" value={config.sharpen} onChange={(e) => update('sharpen', e.target.checked)} disabled={disabled} />
+      <Toggle label="Color Jitter" value={config.color_jitter} onChange={(e) => update('color_jitter', e.target.checked)} disabled={disabled} />
     </section>
   )
 }

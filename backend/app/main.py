@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import os
 import shutil
@@ -40,6 +41,9 @@ class AugmentationConfig(BaseModel):
     brightness_contrast: bool = True
     gaussian_noise: bool = False
     blur: bool = False
+    motion_blur: bool = False
+    sharpen: bool = False
+    color_jitter: bool = False
     augmentations_per_image: int = Field(default=5, ge=1, le=30)
     test_split: float = Field(default=0.2, ge=0.0, le=0.8)
 
@@ -52,11 +56,17 @@ def _build_pipeline(config: AugmentationConfig) -> A.Compose:
     if config.rotation > 0:
         transforms.append(A.Rotate(limit=(-config.rotation, config.rotation), p=0.8, border_mode=cv2.BORDER_REFLECT))
     if config.brightness_contrast:
-        transforms.append(A.RandomBrightnessContrast(p=0.7))
+        transforms.append(A.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3, p=0.8))
     if config.gaussian_noise:
-        transforms.append(A.GaussNoise(p=0.5))
+        transforms.append(A.GaussNoise(var_limit=(40.0, 120.0), mean=0, p=0.75))
     if config.blur:
-        transforms.append(A.GaussianBlur(blur_limit=(3, 7), p=0.5))
+        transforms.append(A.GaussianBlur(blur_limit=(3, 11), p=0.6))
+    if config.motion_blur:
+        transforms.append(A.MotionBlur(blur_limit=(5, 15), p=0.65))
+    if config.sharpen:
+        transforms.append(A.Sharpen(alpha=(0.2, 0.6), lightness=(0.7, 1.2), p=0.5))
+    if config.color_jitter:
+        transforms.append(A.HueSaturationValue(hue_shift_limit=20, sat_shift_limit=35, val_shift_limit=25, p=0.65))
 
     if not transforms:
         transforms = [A.NoOp()]
@@ -76,6 +86,19 @@ def _save_image(path: Path, image: np.ndarray) -> None:
     ok = cv2.imwrite(str(path), image)
     if not ok:
         raise RuntimeError(f"Failed to write image to {path}")
+
+
+def _augment_preview(image_bytes: bytes, pipeline: A.Compose) -> np.ndarray:
+    image = _to_cv_image(image_bytes)
+    return pipeline(image=image)["image"]
+
+
+def _to_data_uri(image: np.ndarray) -> str:
+    ok, encoded = cv2.imencode(".png", image)
+    if not ok:
+        raise RuntimeError("Failed to encode preview image")
+    payload = base64.b64encode(encoded.tobytes()).decode("utf-8")
+    return f"data:image/png;base64,{payload}"
 
 
 def _augment_image_set(
@@ -180,3 +203,42 @@ async def augment(
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Augmentation failed: {exc}") from exc
+
+
+@app.post("/preview")
+async def preview(
+    files: Annotated[list[UploadFile], File(...)],
+    config: Annotated[str, Form(...)],
+):
+    if not files:
+        raise HTTPException(status_code=400, detail="At least one image is required.")
+    if len(files) > MAX_IMAGES:
+        raise HTTPException(status_code=400, detail=f"Maximum {MAX_IMAGES} images allowed.")
+
+    try:
+        parsed_config = AugmentationConfig.model_validate(json.loads(config))
+    except (ValidationError, json.JSONDecodeError) as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid config payload: {exc}") from exc
+
+    for file in files:
+        extension = Path(file.filename or "").suffix.lower()
+        if extension not in ALLOWED_EXTENSIONS:
+            raise HTTPException(status_code=400, detail=f"Unsupported file format: {file.filename}")
+
+    pipeline = _build_pipeline(parsed_config)
+
+    try:
+        response_payload: list[dict[str, str]] = []
+        for file in files:
+            image_bytes = await file.read()
+            augmented = await run_in_threadpool(_augment_preview, image_bytes, pipeline)
+            response_payload.append(
+                {
+                    "file_name": file.filename or "uploaded_image",
+                    "preview_data_uri": _to_data_uri(augmented),
+                }
+            )
+
+        return {"previews": response_payload}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Preview generation failed: {exc}") from exc

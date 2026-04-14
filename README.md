@@ -44,6 +44,7 @@ uvicorn main:app --reload
 
 ### Backend API
 - `GET /health` → status check
+- `POST /preview` → returns one augmented preview image per uploaded file (base64 data URI)
 - `POST /augment` → upload images + config, returns ZIP
 
 `/augment` accepts:
@@ -57,6 +58,9 @@ uvicorn main:app --reload
   "brightness_contrast": true,
   "gaussian_noise": false,
   "blur": true,
+  "motion_blur": true,
+  "sharpen": true,
+  "color_jitter": true,
   "augmentations_per_image": 5,
   "test_split": 0.2
 }
@@ -81,8 +85,9 @@ VITE_API_URL=http://localhost:8000
 1. Open frontend in browser (`http://localhost:5173` by default).
 2. Drag & drop up to 10 JPG/PNG images.
 3. Adjust augmentation toggles and sliders.
-4. Click **Generate Augmented Dataset**.
-5. Download the resulting ZIP.
+4. Click **Generate Preview** to see one sample augmentation per uploaded image.
+5. Click **Generate ZIP** to prepare the downloadable dataset.
+6. Click **Download ZIP** when ready.
 
 ## Output Layout (inside ZIP)
 
@@ -100,3 +105,4 @@ output/
 - Processing runs in parallel threads for faster throughput.
 - File names include unique suffixes to avoid overwrites.
 - Temporary files are cleaned automatically after response.
+- Augmentation pipeline includes optional heavier transforms (noise, motion blur, sharpen, color jitter) for more diverse synthetic data.

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-export default function PreviewGrid({ files, setFiles, disabled }) {
+export default function PreviewGrid({ files, setFiles, previewMap, disabled }) {
   const [previews, setPreviews] = useState([])
 
   useEffect(() => {
@@ -43,6 +43,12 @@ export default function PreviewGrid({ files, setFiles, disabled }) {
                   Remove
                 </button>
               </div>
+              {previewMap[item.name] ? (
+                <div className="border-t border-slate-200 bg-slate-50 p-2">
+                  <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">Augmented sample</p>
+                  <img src={previewMap[item.name]} alt={`${item.name} augmented preview`} className="h-24 w-full rounded object-cover" />
+                </div>
+              ) : null}
             </article>
           ))}
         </div>
