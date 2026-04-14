@@ -109,6 +109,27 @@ def _build_pipeline(config: AugmentationConfig) -> A.Compose:
     return A.Compose(transforms)
 
 
+def _selected_option_count(config: AugmentationConfig) -> int:
+    enabled_count = 0
+    enabled_count += int(config.horizontal_flip)
+    enabled_count += int(config.vertical_flip)
+    enabled_count += int(config.rotation > 0)
+    enabled_count += int(config.brightness_contrast)
+    enabled_count += int(config.gaussian_noise)
+    enabled_count += int(config.blur)
+    enabled_count += int(config.motion_blur)
+    enabled_count += int(config.sharpen)
+    enabled_count += int(config.color_jitter)
+    enabled_count += int(config.random_gamma)
+    enabled_count += int(config.rgb_shift)
+    enabled_count += int(config.channel_shuffle)
+    enabled_count += int(config.perspective)
+    enabled_count += int(config.elastic_transform)
+    enabled_count += int(config.grid_distortion)
+    enabled_count += int(config.coarse_dropout)
+    return enabled_count
+
+
 def _to_cv_image(payload: bytes) -> np.ndarray:
     raw = np.frombuffer(payload, dtype=np.uint8)
     image = cv2.imdecode(raw, cv2.IMREAD_COLOR)
@@ -141,7 +162,7 @@ def _augment_image_set(
     image_bytes: bytes,
     output_root: Path,
     pipeline: A.Compose,
-    augment_count: int,
+    train_augment_count: int,
     test_split: float,
 ) -> None:
     image = _to_cv_image(image_bytes)
@@ -154,18 +175,18 @@ def _augment_image_set(
     train_dir.mkdir(parents=True, exist_ok=True)
     test_dir.mkdir(parents=True, exist_ok=True)
 
-    # Keep original in train by default.
-    _save_image(train_dir / f"{stem}_original{ext}", image)
-
-    test_threshold = int(round(augment_count * test_split))
-
-    for idx in range(augment_count):
+    for idx in range(train_augment_count):
         augmented = pipeline(image=image)["image"]
         unique_suffix = uuid.uuid4().hex[:8]
-        file_name = f"{stem}_aug_{idx + 1}_{unique_suffix}{ext}"
+        file_name = f"{stem}_train_aug_{idx + 1}_{unique_suffix}{ext}"
+        _save_image(train_dir / file_name, augmented)
 
-        destination = test_dir if idx < test_threshold else train_dir
-        _save_image(destination / file_name, augmented)
+    test_count = int(round(train_augment_count * test_split))
+    for idx in range(test_count):
+        augmented = pipeline(image=image)["image"]
+        unique_suffix = uuid.uuid4().hex[:8]
+        file_name = f"{stem}_test_aug_{idx + 1}_{unique_suffix}{ext}"
+        _save_image(test_dir / file_name, augmented)
 
 
 def _zip_directory(source_dir: Path, zip_path: Path) -> None:
@@ -196,6 +217,8 @@ async def augment(
         raise HTTPException(status_code=400, detail=f"Invalid config payload: {exc}") from exc
 
     pipeline = _build_pipeline(parsed_config)
+    selected_option_count = _selected_option_count(parsed_config)
+    train_augment_count = selected_option_count if selected_option_count > 0 else parsed_config.augmentations_per_image
 
     for file in files:
         extension = Path(file.filename or "").suffix.lower()
@@ -219,7 +242,7 @@ async def augment(
                     image_bytes,
                     output_root,
                     pipeline,
-                    parsed_config.augmentations_per_image,
+                    train_augment_count,
                     parsed_config.test_split,
                 )
                 for image_name, image_bytes in payloads

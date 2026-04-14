@@ -74,6 +74,8 @@ uvicorn main:app --reload
 }
 ```
 
+`/augment` behavior: train image count is derived from enabled augmentation options (if no option is enabled, `augmentations_per_image` is used). Test count is `round(train_count * test_split)`.
+
 ## Frontend Setup
 
 ```bash
