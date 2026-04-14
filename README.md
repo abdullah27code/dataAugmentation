@@ -27,6 +27,15 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
+You can also run the API from the repository root:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\\Scripts\\activate
+pip install -r backend/requirements.txt
+uvicorn main:app --reload
+```
+
 ### Backend API
 - `GET /health` → status check
 - `POST /augment` → upload images + config, returns ZIP
