@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import time
+from importlib.util import find_spec
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent
@@ -19,18 +20,34 @@ VITE_BIN_WIN = FRONTEND_DIR / "node_modules" / ".bin" / "vite.cmd"
 VITE_BIN_UNIX = FRONTEND_DIR / "node_modules" / ".bin" / "vite"
 
 
-def _command_exists(command: str) -> bool:
-    return shutil.which(command) is not None
+def _resolve_npm_command() -> list[str] | None:
+    for candidate in ("npm", "npm.cmd", "npm.exe"):
+        resolved = shutil.which(candidate)
+        if resolved:
+            return [resolved]
+    return None
 
 
-def _print_missing_dependency_message() -> bool:
+def _resolve_uvicorn_command() -> list[str] | None:
+    for candidate in ("uvicorn", "uvicorn.exe", "uvicorn.cmd"):
+        resolved = shutil.which(candidate)
+        if resolved:
+            return [resolved]
+
+    if find_spec("uvicorn") is not None:
+        return [sys.executable, "-m", "uvicorn"]
+
+    return None
+
+
+def _print_missing_dependency_message(npm_command: list[str] | None, uvicorn_command: list[str] | None) -> bool:
     has_error = False
 
-    if not _command_exists("npm"):
+    if npm_command is None:
         print("[ERROR] npm was not found. Install Node.js and ensure npm is on your PATH.")
         has_error = True
 
-    if not _command_exists("uvicorn"):
+    if uvicorn_command is None:
         print("[ERROR] uvicorn was not found. Install it with: pip install uvicorn")
         has_error = True
 
@@ -47,13 +64,13 @@ def _start_process(command: list[str], cwd: Path) -> subprocess.Popen:
     )
 
 
-def _ensure_frontend_dependencies() -> bool:
+def _ensure_frontend_dependencies(npm_command: list[str]) -> bool:
     vite_exists = VITE_BIN_WIN.exists() or VITE_BIN_UNIX.exists()
     if vite_exists:
         return True
 
     print("[INFO] Frontend dependencies are missing. Running npm install...")
-    install_result = subprocess.run(["npm", "install"], cwd=str(FRONTEND_DIR), shell=False)
+    install_result = subprocess.run([*npm_command, "install"], cwd=str(FRONTEND_DIR), shell=False)
     if install_result.returncode != 0:
         print("[ERROR] npm install failed. Frontend could not be prepared.")
         return False
@@ -78,22 +95,28 @@ def _terminate_process(process: subprocess.Popen) -> None:
 
 
 def main() -> int:
-    if _print_missing_dependency_message():
+    npm_command = _resolve_npm_command()
+    uvicorn_command = _resolve_uvicorn_command()
+
+    if _print_missing_dependency_message(npm_command, uvicorn_command):
         return 1
 
     if not FRONTEND_DIR.exists():
         print(f"[ERROR] frontend directory not found: {FRONTEND_DIR}")
         return 1
 
-    if not _ensure_frontend_dependencies():
+    if npm_command is None or uvicorn_command is None:
+        return 1
+
+    if not _ensure_frontend_dependencies(npm_command):
         return 1
 
     frontend_process: subprocess.Popen | None = None
     backend_process: subprocess.Popen | None = None
 
     try:
-        frontend_process = _start_process(["npm", "run", "dev"], FRONTEND_DIR)
-        backend_process = _start_process(["uvicorn", "main:app", "--reload"], ROOT_DIR)
+        frontend_process = _start_process([*npm_command, "run", "dev"], FRONTEND_DIR)
+        backend_process = _start_process([*uvicorn_command, "main:app", "--reload"], ROOT_DIR)
 
         time.sleep(1)
 
