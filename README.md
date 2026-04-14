@@ -103,6 +103,7 @@ VITE_API_URL=http://localhost:8000
 1. Open frontend in browser (`http://localhost:5173` by default).
 2. Drag & drop up to 10 JPG/PNG images.
 3. Adjust augmentation toggles and sliders.
+   - Use **Clear All Options** in the settings panel to reset all augmentation toggles to off.
 4. Click **Generate Preview** to see one sample augmentation per uploaded image.
 5. Click **Generate ZIP** to prepare the downloadable dataset.
 6. Click **Download ZIP** when ready.

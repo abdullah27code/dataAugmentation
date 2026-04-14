@@ -4,6 +4,27 @@ import PreviewGrid from './components/PreviewGrid'
 import Controls from './components/Controls'
 import { requestAugmentation, requestPreview } from './lib/api'
 
+const DEFAULT_CONFIG = {
+  horizontal_flip: true,
+  vertical_flip: false,
+  rotation: 15,
+  brightness_contrast: true,
+  gaussian_noise: false,
+  blur: false,
+  motion_blur: false,
+  sharpen: false,
+  color_jitter: false,
+  random_gamma: false,
+  rgb_shift: false,
+  channel_shuffle: false,
+  perspective: false,
+  elastic_transform: false,
+  grid_distortion: false,
+  coarse_dropout: false,
+  augmentations_per_image: 5,
+  test_split: 0.2,
+}
+
 export default function App() {
   const [files, setFiles] = useState([])
   const [error, setError] = useState('')
@@ -12,26 +33,7 @@ export default function App() {
   const [previewMap, setPreviewMap] = useState({})
   const [zipBlob, setZipBlob] = useState(null)
 
-  const [config, setConfig] = useState({
-    horizontal_flip: true,
-    vertical_flip: false,
-    rotation: 15,
-    brightness_contrast: true,
-    gaussian_noise: false,
-    blur: false,
-    motion_blur: false,
-    sharpen: false,
-    color_jitter: false,
-    random_gamma: false,
-    rgb_shift: false,
-    channel_shuffle: false,
-    perspective: false,
-    elastic_transform: false,
-    grid_distortion: false,
-    coarse_dropout: false,
-    augmentations_per_image: 5,
-    test_split: 0.2,
-  })
+  const [config, setConfig] = useState(DEFAULT_CONFIG)
 
   const canGenerate = useMemo(() => files.length > 0 && !loading, [files.length, loading])
 
@@ -110,6 +112,28 @@ export default function App() {
     URL.revokeObjectURL(url)
   }
 
+  const handleClearOptions = () => {
+    setConfig((previous) => ({
+      ...previous,
+      horizontal_flip: false,
+      vertical_flip: false,
+      rotation: 0,
+      brightness_contrast: false,
+      gaussian_noise: false,
+      blur: false,
+      motion_blur: false,
+      sharpen: false,
+      color_jitter: false,
+      random_gamma: false,
+      rgb_shift: false,
+      channel_shuffle: false,
+      perspective: false,
+      elastic_transform: false,
+      grid_distortion: false,
+      coarse_dropout: false,
+    }))
+  }
+
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-8 text-slate-900">
       <div className="mx-auto max-w-5xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
@@ -125,7 +149,7 @@ export default function App() {
           </section>
 
           <section className="space-y-4">
-            <Controls config={config} setConfig={setConfig} disabled={loading} />
+            <Controls config={config} setConfig={setConfig} disabled={loading} onClearOptions={handleClearOptions} />
 
             <button
               type="button"

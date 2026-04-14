@@ -7,7 +7,7 @@ function Toggle({ label, value, onChange, disabled }) {
   )
 }
 
-export default function Controls({ config, setConfig, disabled }) {
+export default function Controls({ config, setConfig, disabled, onClearOptions }) {
   const update = (key, value) => setConfig((prev) => ({ ...prev, [key]: value }))
 
   return (
@@ -63,6 +63,15 @@ export default function Controls({ config, setConfig, disabled }) {
         onChange={(e) => update('coarse_dropout', e.target.checked)}
         disabled={disabled}
       />
+
+      <button
+        type="button"
+        onClick={onClearOptions}
+        disabled={disabled}
+        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        Clear All Options
+      </button>
     </section>
   )
 }
