@@ -37,6 +37,7 @@ ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 
 class AugmentationConfig(BaseModel):
     horizontal_flip: bool = True
+    vertical_flip: bool = False
     rotation: int = Field(default=15, ge=0, le=45)
     brightness_contrast: bool = True
     gaussian_noise: bool = False
@@ -44,6 +45,13 @@ class AugmentationConfig(BaseModel):
     motion_blur: bool = False
     sharpen: bool = False
     color_jitter: bool = False
+    random_gamma: bool = False
+    rgb_shift: bool = False
+    channel_shuffle: bool = False
+    perspective: bool = False
+    elastic_transform: bool = False
+    grid_distortion: bool = False
+    coarse_dropout: bool = False
     augmentations_per_image: int = Field(default=5, ge=1, le=30)
     test_split: float = Field(default=0.2, ge=0.0, le=0.8)
 
@@ -53,6 +61,8 @@ def _build_pipeline(config: AugmentationConfig) -> A.Compose:
 
     if config.horizontal_flip:
         transforms.append(A.HorizontalFlip(p=0.7))
+    if config.vertical_flip:
+        transforms.append(A.VerticalFlip(p=0.45))
     if config.rotation > 0:
         transforms.append(A.Rotate(limit=(-config.rotation, config.rotation), p=0.8, border_mode=cv2.BORDER_REFLECT))
     if config.brightness_contrast:
@@ -67,6 +77,31 @@ def _build_pipeline(config: AugmentationConfig) -> A.Compose:
         transforms.append(A.Sharpen(alpha=(0.2, 0.6), lightness=(0.7, 1.2), p=0.5))
     if config.color_jitter:
         transforms.append(A.HueSaturationValue(hue_shift_limit=20, sat_shift_limit=35, val_shift_limit=25, p=0.65))
+    if config.random_gamma:
+        transforms.append(A.RandomGamma(gamma_limit=(70, 140), p=0.5))
+    if config.rgb_shift:
+        transforms.append(A.RGBShift(r_shift_limit=25, g_shift_limit=25, b_shift_limit=25, p=0.55))
+    if config.channel_shuffle:
+        transforms.append(A.ChannelShuffle(p=0.35))
+    if config.perspective:
+        transforms.append(A.Perspective(scale=(0.03, 0.08), p=0.45))
+    if config.elastic_transform:
+        transforms.append(A.ElasticTransform(alpha=1.2, sigma=40, alpha_affine=25, p=0.4))
+    if config.grid_distortion:
+        transforms.append(A.GridDistortion(num_steps=5, distort_limit=0.25, p=0.35))
+    if config.coarse_dropout:
+        transforms.append(
+            A.CoarseDropout(
+                max_holes=10,
+                max_height=24,
+                max_width=24,
+                min_holes=2,
+                min_height=8,
+                min_width=8,
+                fill_value=0,
+                p=0.5,
+            )
+        )
 
     if not transforms:
         transforms = [A.NoOp()]

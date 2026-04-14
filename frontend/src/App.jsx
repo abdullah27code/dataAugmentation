@@ -14,6 +14,7 @@ export default function App() {
 
   const [config, setConfig] = useState({
     horizontal_flip: true,
+    vertical_flip: false,
     rotation: 15,
     brightness_contrast: true,
     gaussian_noise: false,
@@ -21,6 +22,13 @@ export default function App() {
     motion_blur: false,
     sharpen: false,
     color_jitter: false,
+    random_gamma: false,
+    rgb_shift: false,
+    channel_shuffle: false,
+    perspective: false,
+    elastic_transform: false,
+    grid_distortion: false,
+    coarse_dropout: false,
     augmentations_per_image: 5,
     test_split: 0.2,
   })

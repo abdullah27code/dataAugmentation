@@ -54,6 +54,7 @@ uvicorn main:app --reload
 ```json
 {
   "horizontal_flip": true,
+  "vertical_flip": false,
   "rotation": 20,
   "brightness_contrast": true,
   "gaussian_noise": false,
@@ -61,6 +62,13 @@ uvicorn main:app --reload
   "motion_blur": true,
   "sharpen": true,
   "color_jitter": true,
+  "random_gamma": true,
+  "rgb_shift": false,
+  "channel_shuffle": false,
+  "perspective": true,
+  "elastic_transform": false,
+  "grid_distortion": false,
+  "coarse_dropout": false,
   "augmentations_per_image": 5,
   "test_split": 0.2
 }

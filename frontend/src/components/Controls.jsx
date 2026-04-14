@@ -15,6 +15,7 @@ export default function Controls({ config, setConfig, disabled }) {
       <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Augmentation Options</h2>
 
       <Toggle label="Flip" value={config.horizontal_flip} onChange={(e) => update('horizontal_flip', e.target.checked)} disabled={disabled} />
+      <Toggle label="Vertical Flip" value={config.vertical_flip} onChange={(e) => update('vertical_flip', e.target.checked)} disabled={disabled} />
 
       <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
         <label className="mb-2 block text-sm">Rotate ({config.rotation}°)</label>
@@ -40,6 +41,28 @@ export default function Controls({ config, setConfig, disabled }) {
       <Toggle label="Motion Blur" value={config.motion_blur} onChange={(e) => update('motion_blur', e.target.checked)} disabled={disabled} />
       <Toggle label="Sharpen" value={config.sharpen} onChange={(e) => update('sharpen', e.target.checked)} disabled={disabled} />
       <Toggle label="Color Jitter" value={config.color_jitter} onChange={(e) => update('color_jitter', e.target.checked)} disabled={disabled} />
+      <Toggle label="Random Gamma" value={config.random_gamma} onChange={(e) => update('random_gamma', e.target.checked)} disabled={disabled} />
+      <Toggle label="RGB Shift" value={config.rgb_shift} onChange={(e) => update('rgb_shift', e.target.checked)} disabled={disabled} />
+      <Toggle label="Channel Shuffle" value={config.channel_shuffle} onChange={(e) => update('channel_shuffle', e.target.checked)} disabled={disabled} />
+      <Toggle label="Perspective" value={config.perspective} onChange={(e) => update('perspective', e.target.checked)} disabled={disabled} />
+      <Toggle
+        label="Elastic Transform"
+        value={config.elastic_transform}
+        onChange={(e) => update('elastic_transform', e.target.checked)}
+        disabled={disabled}
+      />
+      <Toggle
+        label="Grid Distortion"
+        value={config.grid_distortion}
+        onChange={(e) => update('grid_distortion', e.target.checked)}
+        disabled={disabled}
+      />
+      <Toggle
+        label="Coarse Dropout"
+        value={config.coarse_dropout}
+        onChange={(e) => update('coarse_dropout', e.target.checked)}
+        disabled={disabled}
+      />
     </section>
   )
 }
