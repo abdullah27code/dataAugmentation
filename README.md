@@ -102,6 +102,7 @@ VITE_API_URL=http://localhost:8000
 ```bash
 python start.py
 ```
+`start.py` opens the browser automatically on `http://localhost:5173`, starts backend after a short delay, and shuts down both processes gracefully on `CTRL+C`.
 
 Windows users can also run:
 

@@ -27,6 +27,8 @@ if not exist "%~dp0frontend\node_modules\.bin\vite.cmd" (
 
 echo App started successfully
 start "Frontend" cmd /k "cd /d %~dp0frontend && npm run dev"
+timeout /t 2 /nobreak >nul
 start "Backend" cmd /k "cd /d %~dp0 && uvicorn main:app --reload"
+start "" http://localhost:5173
 
 endlocal

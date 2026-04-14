@@ -7,10 +7,13 @@ Usage:
 
 from __future__ import annotations
 
+import os
 import shutil
+import signal
 import subprocess
 import sys
 import time
+import webbrowser
 from importlib.util import find_spec
 from pathlib import Path
 
@@ -55,12 +58,20 @@ def _print_missing_dependency_message(npm_command: list[str] | None, uvicorn_com
 
 
 def _start_process(command: list[str], cwd: Path) -> subprocess.Popen:
+    kwargs = {
+        "cwd": str(cwd),
+        "stdout": None,
+        "stderr": None,
+        "shell": False,
+    }
+    if os.name == "nt":
+        kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+    else:
+        kwargs["start_new_session"] = True
+
     return subprocess.Popen(
         command,
-        cwd=str(cwd),
-        stdout=None,
-        stderr=None,
-        shell=False,
+        **kwargs,
     )
 
 
@@ -87,7 +98,10 @@ def _terminate_process(process: subprocess.Popen) -> None:
     if process.poll() is not None:
         return
 
-    process.terminate()
+    if os.name == "nt":
+        process.send_signal(signal.CTRL_BREAK_EVENT)
+    else:
+        process.terminate()
     try:
         process.wait(timeout=8)
     except subprocess.TimeoutExpired:
@@ -116,6 +130,7 @@ def main() -> int:
 
     try:
         frontend_process = _start_process([*npm_command, "run", "dev"], FRONTEND_DIR)
+        time.sleep(2)
         backend_process = _start_process([*uvicorn_command, "main:app", "--reload"], ROOT_DIR)
 
         time.sleep(1)
@@ -131,6 +146,7 @@ def main() -> int:
         print("App started successfully")
         print("Frontend: http://127.0.0.1:5173")
         print("Backend:  http://127.0.0.1:8000")
+        webbrowser.open("http://localhost:5173", new=2)
 
         while True:
             frontend_exit = frontend_process.poll()
