@@ -1,0 +1,9 @@
+{
+  "name": "dataaugmentation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Starter Node.js manifest so npm commands run in this repository.",
+  "scripts": {
+    "start": "node -e \"console.log('Project is initialized.')\""
+  }
+}
